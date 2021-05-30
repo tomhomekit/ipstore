@@ -16,7 +16,7 @@ var (
 )
 
 func ReportIP() {
-	resp, err := http.Get(`http://ip.clearcode.cn/ip`)
+	resp, err := http.Get(`http://ip.clearcode.cn/ip?key=ip`)
 	if err != nil {
 		log.Println(err)
 		return
