@@ -1,8 +1,6 @@
 package main
 
 import (
-	"flag"
-	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
@@ -14,21 +12,6 @@ var (
 	mutex sync.Mutex
 	kv    = make(map[string]string)
 )
-
-func ReportIP() {
-	resp, err := http.Get(`http://ip.clearcode.cn/ip?key=ip`)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	defer resp.Body.Close()
-
-	data, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Println(err)
-	}
-	log.Println("ip", string(data))
-}
 
 func StartHttpServer() {
 	http.HandleFunc("/ip", func(w http.ResponseWriter, r *http.Request) {
@@ -61,23 +44,30 @@ func StartHttpServer() {
 	http.ListenAndServe(":9999", nil)
 }
 
-var (
-	isReporter bool
-)
+func startTicker() {
+	fn := func() {
+		addrs, err := net.LookupHost("mrjnamei.tpddns.cn")
+		if err != nil {
+			log.Println("[ERRO] ", err)
+			return
+		}
+		if len(addrs) == 0 {
+			return
+		}
+		mutex.Lock()
+		kv["ip"] = addrs[0]
+		mutex.Unlock()
+		log.Println("[INFO] ip is", addrs[0])
+	}
 
-func init() {
-	flag.BoolVar(&isReporter, "r", false, "is reporter")
+	fn()
+	tk := time.NewTicker(30 * time.Second)
+	for range tk.C {
+		fn()
+	}
 }
 
 func main() {
-	flag.Parse()
-
-	if isReporter {
-		tk := time.NewTicker(30 * time.Second)
-		for range tk.C {
-			ReportIP()
-		}
-	} else {
-		StartHttpServer()
-	}
+	go startTicker()
+	StartHttpServer()
 }
