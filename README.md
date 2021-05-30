@@ -1,3 +1,3 @@
 # Ip reporter
 
-report my ip to server. 
+get ip from server
